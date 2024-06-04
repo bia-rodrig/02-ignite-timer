@@ -14,19 +14,19 @@ import {
 } from './styles'
 import { useState } from 'react'
 
-// não foi dado o nome de formValidationScheme, pois se tiver mais de um formulario na página, vai ter q renomear a const
-//schema - definir um formato e validar os dados do formulário com base nesse schema
 const newCycleFormValidationSchema = zod.object({
-	// tem q ter no minimo 1 caractere e qual a mensagem que vai retornar ao usuário, caso não atenda ao requisito
+	//task: tem q ser uma string, ter o minimo de 1 caractere e a mensagem q o usuário vai receber, caso não atenda ao requisito minimo
 	task: zod.string().min(1,'Informe a tarefa'),
-	minutesAmount: zod.number().min(5).max(60)
+	
+	// minutesAmount -> tem que ser numero, minimo 5 e maximo 60
+	minutesAmount: zod.number().min(5, 'O ciclo precisa ser de no mínimo 5 minutos.').max(60, 'O ciclo precisa ser de no máximo 60 minutos.')
 })
 
-
+//passa um objeto de configuração use form, que vai ser um schema, de como devem estar os dados
 export function Home() {
-	// passa um objeto de configuraçãoes pro useForm
-  const { register, handleSubmit, watch } = useForm({
-	// passar para o zodResolver o schema de validação -> de que forma quer validar os dados dos inputs -> regras de validação - pra isso cria a const newCycleFormValidationSchema
+
+	
+  const { register, handleSubmit, watch} = useForm({
 	resolver: zodResolver(newCycleFormValidationSchema)
   })
 
@@ -34,9 +34,9 @@ export function Home() {
     console.log(data)
   }
 
-  const task = watch('task') 
+  
+  const task = watch('task')
   const isSubmitDisable = !task
-
   return (
     <HomeContainer>
       <form onSubmit={handleSubmit(handleCreateNewCycle)} action="">
