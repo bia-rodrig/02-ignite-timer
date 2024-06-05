@@ -1,6 +1,6 @@
 import { Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod' //integração específica para o zod
+import { zodResolver } from '@hookform/resolvers/zod' 
 import * as zod from 'zod'
 
 import {
@@ -15,22 +15,36 @@ import {
 import { useState } from 'react'
 
 const newCycleFormValidationSchema = zod.object({
-	//task: tem q ser uma string, ter o minimo de 1 caractere e a mensagem q o usuário vai receber, caso não atenda ao requisito minimo
 	task: zod.string().min(1,'Informe a tarefa'),
-	
-	// minutesAmount -> tem que ser numero, minimo 5 e maximo 60
-	minutesAmount: zod.number().min(5, 'O ciclo precisa ser de no mínimo 5 minutos.').max(60, 'O ciclo precisa ser de no máximo 60 minutos.')
+
+	minutesAmount: zod
+	.number()
+	.min(5, 'O ciclo precisa ser de no mínimo 5 minutos.')
+	.max(60, 'O ciclo precisa ser de no máximo 60 minutos.'),
+
+	//se adicionasse algo aqui, automaticamente iria para a interface zod
+	//owner: zod.string().optional()
 })
 
-//passa um objeto de configuração use form, que vai ser um schema, de como devem estar os dados
-export function Home() {
+/*interface NewCycleFormData{
+	task: string,
+	minutesAmount: number
+}*/
 
-	
-  const { register, handleSubmit, watch} = useForm({
-	resolver: zodResolver(newCycleFormValidationSchema)
+//cria a interface a partir do que foi definido no zod
+type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
+
+export function Home() {
+  const { register, handleSubmit, watch} = useForm<NewCycleFormData>({
+	resolver: zodResolver(newCycleFormValidationSchema),
+	// valor inicial dos dados do form
+	defaultValues:{
+		task: '',
+		minutesAmout: 0,
+	}
   })
 
-  function handleCreateNewCycle(data: any) {
+  function handleCreateNewCycle(data: NewCycleFormData) {
     console.log(data)
   }
 
