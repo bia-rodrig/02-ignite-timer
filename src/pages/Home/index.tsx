@@ -2,7 +2,9 @@ import { Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+import { differenceInSeconds } from 'date-fns'
 
 import {
   CountdownContainer,
@@ -29,6 +31,7 @@ interface Cycle {
   id: string
   task: string
   minutesAmount: number
+  startDate: Date // salva quando o ciclo foi criado (ficou ativo) -> para não utilizar o setInterval que não tem o segundo preciso -> e com abse nessa data, vamos saber quanto tempo passou
 }
 
 export function Home() {
@@ -48,6 +51,25 @@ export function Home() {
     },
   })
 
+  // move variável para acima do useEffect, pois ele usará ela
+  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+
+  useEffect(() => {
+    // só faz o countdown se tiver um ciclo ativo
+    if (activeCycle) {
+      // como o segundo (1000) do setInterval não é preciso, cada vez que executar calcula quantos segundos já passaram desde o startDate
+      // instalar date-fns
+      setInterval(() => {
+        // a data maior (mais atual), vai sempre como primeiro parametro para calcular a diferença, senão da numero negativo
+        setAmountSecondsPassed(
+          differenceInSeconds(new Date(), activeCycle.startDate),
+        )
+      }, 1000)
+    }
+    // o activeCycle utilizado acima, é uma variável externa ao useEffect e toda vez que utiliza uma variável externa, é necessário adiciona-la como uma dependencia
+    // com isso, cada vez que essa variável activeCycle mudar, esse código vai executar novamente
+  }, [activeCycle])
+
   function handleCreateNewCycle(data: NewCycleFormData) {
     const id = String(new Date().getTime())
 
@@ -55,6 +77,7 @@ export function Home() {
       id,
       task: data.task,
       minutesAmount: data.minutesAmount,
+      startDate: new Date(),
     }
 
     setCycles((state) => [...state, newCycle])
@@ -62,30 +85,14 @@ export function Home() {
     reset()
   }
 
-  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
-
-  // converte os minutos inseridos pelo usuário em segundos.
-  // quando a pessoa da o F5 na página, fica com nenhum ciclo ativo.
-  // então por isso só converte se tiver um activeCyle.
-  // se tiver um ciclo ativo, converte o minutes amount para segundas. Se não tiver, o totalSeconds é zero
   const totalSeconds = activeCycle ? activeCycle?.minutesAmount * 60 : 0
 
-  // se tiver um activeCycle, pega o total de segundos e subtrai os segundos que já passaram
-  // senão, é zero
   const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
 
-  // converter currentSeconds de uma maneira que consiga exibir em tela (minutos:segundos)
-  // calcular dos segundos que já passaram, o total de minutos
-  const minutesAmount = Math.floor(currentSeconds / 60) // arredonda pra baixo a divisão
-  // .floor -> chão, arredonda pra baixo
-  // .ceil -> arredonda pra cima
-  // .round -> .5 pra cima, arredonda pra cima. .5 pra baixo, arredonda pra baixo
+  const minutesAmount = Math.floor(currentSeconds / 60)
 
-  const secondsAmount = currentSeconds % 60 // pega o resto da divisão, pra pegar a quantidade de segundos
+  const secondsAmount = currentSeconds % 60
 
-  // converte o minutesAmount para string para poder separar os digítos
-  // padStart -> preenche o tamanho de uma string com determinados caracteres
-  // deve ter 2 caracteres, se não tiver, preencher com 0 no start da string
   const minutes = String(minutesAmount).padStart(2, '0')
   const seconds = String(secondsAmount).padStart(2, '0')
 
