@@ -25,7 +25,6 @@ const newCycleFormValidationSchema = zod.object({
 
 type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
 
-// formato dos ciclos da aplicação
 interface Cycle {
   id: string
   task: string
@@ -33,10 +32,13 @@ interface Cycle {
 }
 
 export function Home() {
-  const [cycles, setCycles] = useState<Cycle[]>([]) // formato da informação - vai armazenar uma (Cycle[]) lista de ciclos e inicia o estado com o mesmo tipo, por isso o ([])
+  const [cycles, setCycles] = useState<Cycle[]>([])
 
-  // vai guardar o ciclo ativo. e o id pode ser string ou nulo (pois quando inicia a aplicação, o id ta nulo)
   const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
+
+  // armazena a quantidade de segundos que já passaram desde que o ciclo iniciou
+  // totalSeconds menos o total de segundos que já passou, pra ter quantos ainda faltam.
+  const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
 
   const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
     resolver: zodResolver(newCycleFormValidationSchema),
@@ -47,25 +49,45 @@ export function Home() {
   })
 
   function handleCreateNewCycle(data: NewCycleFormData) {
-    const id = String(new Date().getTime()) // cria o id do ciclo - retorna o time value - data atual como milissegundos - ai não tem ids repetidos
+    const id = String(new Date().getTime())
 
     const newCycle: Cycle = {
       id,
       task: data.task,
       minutesAmount: data.minutesAmount,
     }
-    // adiciona nova informação no array - copia o estado atual dos cycles já existentes e adiciona o newCycle
-    // semrpe que um valor depender de um estado anterior, usar uma arrow function
+
     setCycles((state) => [...state, newCycle])
     setActiveCycleId(id)
     reset()
   }
 
-  // mostrar na tela qual o ciclo ativo -> com base no id do ciclo ativo, pesquisa no array
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
-  // Se não encontrar nada, activeCycle será undefined (posicionando o mause, ele mostra as opções que podem ser o activeCyle)
 
-  console.log(activeCycle)
+  // converte os minutos inseridos pelo usuário em segundos.
+  // quando a pessoa da o F5 na página, fica com nenhum ciclo ativo.
+  // então por isso só converte se tiver um activeCyle.
+  // se tiver um ciclo ativo, converte o minutes amount para segundas. Se não tiver, o totalSeconds é zero
+  const totalSeconds = activeCycle ? activeCycle?.minutesAmount * 60 : 0
+
+  // se tiver um activeCycle, pega o total de segundos e subtrai os segundos que já passaram
+  // senão, é zero
+  const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
+
+  // converter currentSeconds de uma maneira que consiga exibir em tela (minutos:segundos)
+  // calcular dos segundos que já passaram, o total de minutos
+  const minutesAmount = Math.floor(currentSeconds / 60) // arredonda pra baixo a divisão
+  // .floor -> chão, arredonda pra baixo
+  // .ceil -> arredonda pra cima
+  // .round -> .5 pra cima, arredonda pra cima. .5 pra baixo, arredonda pra baixo
+
+  const secondsAmount = currentSeconds % 60 // pega o resto da divisão, pra pegar a quantidade de segundos
+
+  // converte o minutesAmount para string para poder separar os digítos
+  // padStart -> preenche o tamanho de uma string com determinados caracteres
+  // deve ter 2 caracteres, se não tiver, preencher com 0 no start da string
+  const minutes = String(minutesAmount).padStart(2, '0')
+  const seconds = String(secondsAmount).padStart(2, '0')
 
   const task = watch('task')
   const isSubmitDisable = !task
@@ -101,11 +123,11 @@ export function Home() {
         </FormContainer>
 
         <CountdownContainer>
-          <span>0</span>
-          <span>0</span>
+          <span>{minutes[0]}</span>
+          <span>{minutes[1]}</span>
           <Separator>:</Separator>
-          <span>0</span>
-          <span>0</span>
+          <span>{seconds[0]}</span>
+          <span>{seconds[1]}</span>
         </CountdownContainer>
 
         <StartCountdownButton disabled={isSubmitDisable} type="submit">
