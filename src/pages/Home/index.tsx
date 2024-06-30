@@ -1,6 +1,6 @@
 import { Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod' 
+import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
 import { useState } from 'react'
 
@@ -14,7 +14,6 @@ import {
   TaskInput,
 } from './styles'
 
-
 const newCycleFormValidationSchema = zod.object({
   task: zod.string().min(1, 'Informe a tarefa'),
 
@@ -26,45 +25,47 @@ const newCycleFormValidationSchema = zod.object({
 
 type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
 
-//formato dos ciclos da aplicação
-interface Cycle{
+// formato dos ciclos da aplicação
+interface Cycle {
   id: string
   task: string
   minutesAmount: number
 }
 
-
 export function Home() {
-  const [cycles, setCycles] = useState<Cycle[]>([]) //formato da informação - vai armazenar uma (Cycle[]) lista de ciclos e inicia o estado com o mesmo tipo, por isso o ([])
+  const [cycles, setCycles] = useState<Cycle[]>([]) // formato da informação - vai armazenar uma (Cycle[]) lista de ciclos e inicia o estado com o mesmo tipo, por isso o ([])
 
-  //vai guardar o ciclo ativo. e o id pode ser string ou nulo (pois quando inicia a aplicação, o id ta nulo)
-  const [activeCycle, setActiveCycleId] = useState<string | null>(null)
+  // vai guardar o ciclo ativo. e o id pode ser string ou nulo (pois quando inicia a aplicação, o id ta nulo)
+  const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
 
-  const { register, handleSubmit, watch, reset} = useForm<NewCycleFormData>({
+  const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
     resolver: zodResolver(newCycleFormValidationSchema),
     defaultValues: {
       task: '',
-      minutesAmout: 0,
-	}
+      minutesAmount: 0,
+    },
   })
 
   function handleCreateNewCycle(data: NewCycleFormData) {
-    const id = String(new Date().getTime()) //cria o id do ciclo - retorna o time value - data atual como milissegundos - ai não tem ids repetidos
-	
-	const newCycle: Cycle = {
+    const id = String(new Date().getTime()) // cria o id do ciclo - retorna o time value - data atual como milissegundos - ai não tem ids repetidos
+
+    const newCycle: Cycle = {
       id,
       task: data.task,
       minutesAmount: data.minutesAmount,
     }
     // adiciona nova informação no array - copia o estado atual dos cycles já existentes e adiciona o newCycle
-	//semrpe que um valor depender de um estado anterior, usar uma arrow function
+    // semrpe que um valor depender de um estado anterior, usar uma arrow function
     setCycles((state) => [...state, newCycle])
-	setActiveCycleId(id)
+    setActiveCycleId(id)
     reset()
   }
 
   // mostrar na tela qual o ciclo ativo -> com base no id do ciclo ativo, pesquisa no array
-  const activeCycle = cycles.find((cycle) => cycleid === setActiveCycleId)
+  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+  // Se não encontrar nada, activeCycle será undefined (posicionando o mause, ele mostra as opções que podem ser o activeCyle)
+
+  console.log(activeCycle)
 
   const task = watch('task')
   const isSubmitDisable = !task
