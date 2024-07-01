@@ -1,4 +1,4 @@
-import { Play } from 'phosphor-react'
+import { HandPalm, Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
@@ -13,6 +13,7 @@ import {
   MinutesAmountInput,
   Separator,
   StartCountdownButton,
+  StopCountdownButton,
   TaskInput,
 } from './styles'
 
@@ -32,6 +33,7 @@ interface Cycle {
   task: string
   minutesAmount: number
   startDate: Date
+  interruptedDate?: Date // data que o usuário interrompeu o ciclo. é opcional
 }
 
 export function Home() {
@@ -52,7 +54,7 @@ export function Home() {
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
 
   useEffect(() => {
-	let interval: number;
+    let interval: number
     if (activeCycle) {
       interval = setInterval(() => {
         setAmountSecondsPassed(
@@ -60,9 +62,9 @@ export function Home() {
         )
       }, 1000)
     }
-	return () => {
-		clearInterval(interval)
-	}
+    return () => {
+      clearInterval(interval)
+    }
   }, [activeCycle])
 
   function handleCreateNewCycle(data: NewCycleFormData) {
@@ -77,8 +79,24 @@ export function Home() {
 
     setCycles((state) => [...state, newCycle])
     setActiveCycleId(id)
-	setAmountSecondsPassed(0)
+    setAmountSecondsPassed(0)
     reset()
+  }
+
+  function handleInterruptCycle() {
+    // anotar se ele foi interrompido ou não, para o histórico saber se foi concluído ou interrompido
+    // percorre todos os ciclos e pra cada ciclo que está interrompendo, se o ciclo for o ciclo ativo, retorna todos os dados do ciclo, porém adiciona a informação de interrupção
+    setCycles(
+      cycles.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, interruptedDate: new Date() }
+        } else {
+          return cycle // se finalizar naturalmente, retorna o ciclo sem alterações
+        }
+      }),
+    )
+    // vai settar o ciclo ativo de volta pra nulo
+    setActiveCycleId(null)
   }
 
   const totalSeconds = activeCycle ? activeCycle?.minutesAmount * 60 : 0
@@ -92,11 +110,12 @@ export function Home() {
   const seconds = String(secondsAmount).padStart(2, '0')
 
   useEffect(() => {
-	if (activeCycle){ // se tiver um ciclo ativo
-		//atualiza o titulo da janela
-		document.title = `${minutes}: ${seconds}`
-	} 
-  }, [minutes, seconds, activeCycle]) //toda vez que os minutos e segundos mudarem
+    if (activeCycle) {
+      // se tiver um ciclo ativo
+      // atualiza o titulo da janela
+      document.title = `${minutes}: ${seconds}`
+    }
+  }, [minutes, seconds, activeCycle]) // toda vez que os minutos e segundos mudarem
 
   const task = watch('task')
   const isSubmitDisable = !task
@@ -109,6 +128,7 @@ export function Home() {
             id="task"
             list="task-suggestions"
             placeholder="Dê um nome para o seu projeto."
+            disabled={!!activeCycle}
             {...register('task')}
           />
 
@@ -125,6 +145,8 @@ export function Home() {
             step={5}
             min={5}
             max={60}
+            // desabilita o campo se tiver um activeCycle
+            disabled={!!activeCycle}
             {...register('minutesAmount', { valueAsNumber: true })}
           />
 
@@ -139,10 +161,20 @@ export function Home() {
           <span>{seconds[1]}</span>
         </CountdownContainer>
 
-        <StartCountdownButton disabled={isSubmitDisable} type="submit">
-          <Play />
-          Começar
-        </StartCountdownButton>
+        {activeCycle ? (
+          // se existir um cycle ativo, coloca o botão como Stop
+          // e não vai ser do tipo submit, porque não vai enviar formulário nenhum. só vai interromper um ciclo
+          <StopCountdownButton onClick={handleInterruptCycle} type="button">
+            <HandPalm size={24} />
+            Interromper
+          </StopCountdownButton>
+        ) : (
+          // senão, coloca o botão para começar um ciclo
+          <StartCountdownButton disabled={isSubmitDisable} type="submit">
+            <Play size={24} />
+            Começar
+          </StartCountdownButton>
+        )}
       </form>
     </HomeContainer>
   )
