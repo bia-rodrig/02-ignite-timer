@@ -22,7 +22,8 @@ const newCycleFormValidationSchema = zod.object({
 
   minutesAmount: zod
     .number()
-    .min(5, 'O ciclo precisa ser de no mínimo 5 minutos.')
+    // alterado apenas para teste
+    .min(1, 'O ciclo precisa ser de no mínimo 5 minutos.')
     .max(60, 'O ciclo precisa ser de no máximo 60 minutos.'),
 })
 
@@ -34,6 +35,7 @@ interface Cycle {
   minutesAmount: number
   startDate: Date
   interruptedDate?: Date // data que o usuário interrompeu o ciclo. é opcional
+  finishedDate?: Date // para quando o cronometro acabar sozinho
 }
 
 export function Home() {
@@ -53,19 +55,43 @@ export function Home() {
 
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
 
+  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+
   useEffect(() => {
     let interval: number
+
     if (activeCycle) {
       interval = setInterval(() => {
-        setAmountSecondsPassed(
-          differenceInSeconds(new Date(), activeCycle.startDate),
+        const secondsDifference = differenceInSeconds(
+          new Date(),
+          activeCycle.startDate,
         )
+
+        if (secondsDifference >= totalSeconds) {
+          setCycles((state) =>
+            state.map((cycle) => {
+              if (cycle.id === activeCycleId) {
+                return { ...cycle, finishedDate: new Date() }
+              } else {
+                return cycle
+              }
+            }),
+          )
+
+          setAmountSecondsPassed(totalSeconds)
+
+          clearInterval(interval)
+        } else {
+          // só atualiza o tanto de segundos que passou, se ainda for um intervalo válido
+          setAmountSecondsPassed(secondsDifference)
+        }
       }, 1000)
     }
+
     return () => {
       clearInterval(interval)
     }
-  }, [activeCycle])
+  }, [activeCycle, totalSeconds, activeCycleId])
 
   function handleCreateNewCycle(data: NewCycleFormData) {
     const id = String(new Date().getTime())
@@ -84,22 +110,18 @@ export function Home() {
   }
 
   function handleInterruptCycle() {
-    // anotar se ele foi interrompido ou não, para o histórico saber se foi concluído ou interrompido
-    // percorre todos os ciclos e pra cada ciclo que está interrompendo, se o ciclo for o ciclo ativo, retorna todos os dados do ciclo, porém adiciona a informação de interrupção
-    setCycles(
-      cycles.map((cycle) => {
+    // alterado para state
+    setCycles((state) =>
+      state.map((cycle) => {
         if (cycle.id === activeCycleId) {
           return { ...cycle, interruptedDate: new Date() }
         } else {
-          return cycle // se finalizar naturalmente, retorna o ciclo sem alterações
+          return cycle
         }
       }),
     )
-    // vai settar o ciclo ativo de volta pra nulo
     setActiveCycleId(null)
   }
-
-  const totalSeconds = activeCycle ? activeCycle?.minutesAmount * 60 : 0
 
   const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
 
@@ -111,11 +133,9 @@ export function Home() {
 
   useEffect(() => {
     if (activeCycle) {
-      // se tiver um ciclo ativo
-      // atualiza o titulo da janela
       document.title = `${minutes}: ${seconds}`
     }
-  }, [minutes, seconds, activeCycle]) // toda vez que os minutos e segundos mudarem
+  }, [minutes, seconds, activeCycle])
 
   const task = watch('task')
   const isSubmitDisable = !task
@@ -143,9 +163,8 @@ export function Home() {
             id="minutesAmount"
             placeholder="00"
             step={5}
-            min={5}
+            min={1} // alterado apenas para teste
             max={60}
-            // desabilita o campo se tiver um activeCycle
             disabled={!!activeCycle}
             {...register('minutesAmount', { valueAsNumber: true })}
           />
@@ -162,14 +181,11 @@ export function Home() {
         </CountdownContainer>
 
         {activeCycle ? (
-          // se existir um cycle ativo, coloca o botão como Stop
-          // e não vai ser do tipo submit, porque não vai enviar formulário nenhum. só vai interromper um ciclo
           <StopCountdownButton onClick={handleInterruptCycle} type="button">
             <HandPalm size={24} />
             Interromper
           </StopCountdownButton>
         ) : (
-          // senão, coloca o botão para começar um ciclo
           <StartCountdownButton disabled={isSubmitDisable} type="submit">
             <Play size={24} />
             Começar
