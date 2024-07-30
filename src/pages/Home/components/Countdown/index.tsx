@@ -1,19 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { CountdownContainer, Separator } from './styles'
 import { differenceInSeconds } from 'date-fns'
+import { CyclesContext } from '../..'
 
-interface CountdownProps {
-  activeCycle: any
-  setCycles: any
-  activeCycleId: any
-}
-
-// agora recebe o activeCycle como parametro e precisa ir na home e passar essa propriedade
-export function Countdown({
-  activeCycle,
-  setCycles,
-  activeCycleId,
-}: CountdownProps) {
+export function Countdown() {
+  const { activeCycle, activeCycleId, markCurrentCycleAsFinished } =
+    useContext(CyclesContext)
   const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
 
   const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
@@ -29,18 +21,8 @@ export function Countdown({
         )
 
         if (secondsDifference >= totalSeconds) {
-          setCycles((state) =>
-            state.map((cycle) => {
-              if (cycle.id === activeCycleId) {
-                return { ...cycle, finishedDate: new Date() }
-              } else {
-                return cycle
-              }
-            }),
-          )
-
+          markCurrentCycleAsFinished()
           setAmountSecondsPassed(totalSeconds)
-
           clearInterval(interval)
         } else {
           // só atualiza o tanto de segundos que passou, se ainda for um intervalo válido
@@ -52,7 +34,21 @@ export function Countdown({
     return () => {
       clearInterval(interval)
     }
-  }, [activeCycle, totalSeconds, activeCycleId])
+  }, [activeCycle, totalSeconds, activeCycleId, markCurrentCycleAsFinished])
+
+  const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
+
+  const minutesAmount = Math.floor(currentSeconds / 60)
+  const secondsAmount = currentSeconds % 60
+
+  const minutes = String(minutesAmount).padStart(2, '0')
+  const seconds = String(secondsAmount).padStart(2, '0')
+
+  useEffect(() => {
+    if (activeCycle) {
+      document.title = `${minutes}: ${seconds}`
+    }
+  }, [minutes, seconds, activeCycle])
 
   return (
     <CountdownContainer>
