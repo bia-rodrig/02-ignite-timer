@@ -37,13 +37,20 @@ export function Home() {
     },
   })
 
-  const { handleSubmit, watch /* reset */ } = newCycleForm
+  const { handleSubmit, watch, reset } = newCycleForm
+
+  function handleCreateNewCycle(data: NewCycleFormData) {
+    // handle -> porque ela vai ser chamada diretamente de um evento.
+    // quando chama a partir de um evento, é bom usar handle
+    createNewCycle(data)
+    reset() // reseta o formulario
+  }
 
   const task = watch('task')
   const isSubmitDisable = !task
   return (
     <HomeContainer>
-      <form onSubmit={handleSubmit(createNewCycle)} action="">
+      <form onSubmit={handleSubmit(handleCreateNewCycle)} action="">
         <FormProvider {...newCycleForm}>
           <NewCycleForm />
         </FormProvider>
